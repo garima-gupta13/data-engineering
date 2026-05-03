@@ -1,0 +1,60 @@
+sql-code-for-gold-layer
+
+SAMPLE -- uploaded the customers data in synapse and used this 
+SELECT
+    TOP 100 *
+FROM
+    OPENROWSET(
+        BULK 'https://olistdatastorageaccountg.dfs.core.windows.net/olistdata/silver',
+        FORMAT = 'PARQUET'
+
+    ) AS result1
+
+
+
+CREATE VIEW :: 
+
+create schema gold
+
+create view gold.final
+AS 
+SELECT
+* from 
+ OPENROWSET(
+    BULK 'https://olistdatastorageaccountg.dfs.core.windows.net/olistdata/silver',
+    FORMAT ='PARQUET'
+ )as result1
+ where order_status = 'delivered'
+
+
+ select * from gold.final
+
+
+SQL to gold layer :::
+-- CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'Garima@123goldlayer'; -- give any password
+-- CREATE DATABASE SCOPED CREDENTIAL garimaadmin WITH IDENTITY ='Managed Identity';
+
+-- select * from sys.database_credentials
+
+CREATE EXTERNAL FILE FORMAT extfileformat WITH (
+    FORMAT_TYPE = PARQUET,
+    DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec'
+);
+GO
+CREATE EXTERNAL DATA SOURCE goldlayer WITH (
+   LOCATION = 'https://olistdatastorageaccountg.dfs.core.windows.net/olistdata/gold',
+   CREDENTIAL = garimaadmin
+);
+GO
+CREATE EXTERNAL TABLE gold.finaltable with (
+    LOCATION = 'Serving',
+    DATA_SOURCE =goldlayer,
+    FILE_FORMAT = extfileformat
+)as 
+SELECT * from gold.final;
+
+
+
+SQL to read from Gold:::
+
+select * from gold.final
